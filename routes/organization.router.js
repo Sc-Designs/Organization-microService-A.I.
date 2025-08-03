@@ -5,7 +5,10 @@ import {
   login,
   register,
   verifyOtp,
+  SearchOrganizations,
+  analytics,
 } from "../controllers/organization.controller.js";
+import isAdminLoggedIn from "../middlewares/isAdminLoggedIn.js";
 const router = express.Router();
 
 router.post(
@@ -49,4 +52,6 @@ router.post(
   tryCatch(verifyOtp)
 );
 
+router.get("/analytics", isAdminLoggedIn, tryCatch(analytics));
+router.get("/search", isAdminLoggedIn, tryCatch(SearchOrganizations));
 export default router;

@@ -4,6 +4,8 @@ import sendEmail from "../utils/EmailSender.js";
 import { validationResult } from "express-validator";
 import crypto from "crypto";
 import RegisterOrgService from '../services/registerOrganization.service.js';
+import Organization from "../models/organization.model.js";
+import getGroupStage from '../utils/GetGroupStage.js';
 
 const register = async (req,res)=>{
     const errors = validationResult(req);
@@ -92,4 +94,51 @@ const verifyOtp = async (req, res) => {
   });
 };
 
-export { login, register, verifyOtp };
+const SearchOrganizations = async (req, res) => {
+  const { query = "", page = 1 } = req.query;
+  const limit = 10;
+  const skip = (page - 1) * limit;
+
+
+  try {
+    const orgs = await Organization.find({
+      $or: [
+        { name: { $regex: `^${query}`, $options: "i" } },
+        { email: { $regex: `^${query}`, $options: "i" } },
+      ],
+    })
+      .select("name email number block")
+      .lean()
+      .skip(skip)
+      .limit(limit + 1);
+
+    const hasMore = orgs.length > limit;
+    if (hasMore) orgs.pop();
+
+    res.json({ orgs, hasMore });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+const analytics = async (req, res) => {
+  const filter = req.query.filter?.toLowerCase() || "weekly";
+  const groupBy = getGroupStage(filter);
+
+  try {
+    const result = await Organization.aggregate([
+      { $match: { createdAt: { $exists: true } } },
+      { $group: { _id: groupBy, count: { $sum: 1 } } },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.week": 1 } },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "Organization analytics error", error: err.message });
+  }
+};
+
+export { login, register, verifyOtp, SearchOrganizations, analytics };
