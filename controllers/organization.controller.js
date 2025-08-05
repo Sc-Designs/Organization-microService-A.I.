@@ -150,11 +150,11 @@ const GetProfile = async (req, res) => {
       query: orgId,
       lean: true,
     });
+
     if (!organizationUser) {
       return res.status(404).json({ message: "Organization not found" });
     }
-    const org = fillterOrgData(organizationUser);
-    res.json(org);
+    res.json({ Org: fillterOrgData(organizationUser, true) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });

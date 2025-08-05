@@ -1,11 +1,12 @@
-const fillterOrgData = (orgData) => {
+const fillterOrgData = (orgData, lean = false) => {
+  const source = lean ? orgData : orgData._doc;
   const { 
     __v, 
     updatedAt, 
     otp, 
     otpExpiry, 
     profileImagePublicId,
-    ...org } = orgData._doc;
+    ...org } = source;
 
     return org;
 };
