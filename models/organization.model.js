@@ -54,6 +54,10 @@ const OrganizationSchema = new mongoose.Schema(
       type: [mongoose.Schema.Types.ObjectId],
       default: [],
     },
+    block: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 ); 

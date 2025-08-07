@@ -160,6 +160,21 @@ const GetProfile = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 }
+
+const blockOrg = async (req, res) => {
+    const { to } = req.body;
+    const org = await OrgFinder({
+      key: "_id",
+      query: to,
+    });
+    org.block = !org.block;
+    await org.save();
+    res.status(200).json({
+        blockStatus: org.block,
+        message: "org block status changed successfully",
+      });
+}
+
 export {
   login,
   register,
@@ -167,4 +182,5 @@ export {
   SearchOrganizations,
   analytics,
   GetProfile,
+  blockOrg,
 };
