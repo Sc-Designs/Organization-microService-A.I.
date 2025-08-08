@@ -28,6 +28,7 @@ const logerAuthenticate = async (req, res, next) => {
       return res.status(404).json({ error: "organization not found" });
     }
     req.organization = organization;
+    req.token = token;
     return next();
   } catch (error) {
     console.log(error);

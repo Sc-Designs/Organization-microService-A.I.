@@ -7,6 +7,9 @@ import RegisterOrgService from '../services/registerOrganization.service.js';
 import Organization from "../models/organization.model.js";
 import getGroupStage from '../utils/GetGroupStage.js';
 import fillterOrgData from '../utils/FillterOrgData.js';
+import redisClient from '../services/redis.service.js';
+import { v2 as cloudinary } from "cloudinary";
+import { uploadImage } from "../db/cloudinary-connection.js";
 
 const register = async (req,res)=>{
     const errors = validationResult(req);
@@ -128,13 +131,14 @@ const analytics = async (req, res) => {
   const groupBy = getGroupStage(filter);
 
   try {
+    const count = await Organization.estimatedDocumentCount();
     const result = await Organization.aggregate([
       { $match: { createdAt: { $exists: true } } },
       { $group: { _id: groupBy, count: { $sum: 1 } } },
       { $sort: { "_id.year": 1, "_id.month": 1, "_id.week": 1 } },
     ]);
 
-    res.json(result);
+    res.json({result, count});
   } catch (err) {
     res
       .status(500)
@@ -175,6 +179,61 @@ const blockOrg = async (req, res) => {
       });
 }
 
+const logOut = async (req, res) => {
+  const token = req.token;
+  redisClient.set(token, "logout", "EX", 60 * 60 * 24);
+  res.status(200).json({message :"LogOut successfully."});
+};
+
+const profileEdit = async (req, res) => {
+  const { name, currentPassword, confirmPassword } = req.body;
+  const File = req.file;
+  const org = await OrgFinder({
+    key: "email",
+    query: req.organization.email,
+    includePassword: true,
+  });
+  let avatarUrl = org.profileImage;
+  let avatarPublicId = org.profileImagePublicId;
+  if (File) {
+    try {
+      if (avatarPublicId) {
+        await cloudinary.uploader.destroy(avatarPublicId);
+      }
+      const result = await uploadImage(File.buffer, {
+        public_id: `org_${org._id}_profilePic`,
+        folder: "orgs/ProfilePic",
+      });
+      avatarUrl = result.secure_url;
+      avatarPublicId = result.public_id;
+    } catch (err) {
+      console.error("Cloudinary upload failed:", err);
+      return res.status(500).json({ message: "Image upload failed" });
+    }
+  }
+
+  if (name) org.name = name;
+  if (avatarUrl) org.profileImage = avatarUrl;
+  if (avatarPublicId) org.profileImagePublicId = avatarPublicId;
+
+  if (currentPassword && confirmPassword) {
+    const isMatch = await org.ComparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+    const hashedPassword = await Organization.hashPassword(confirmPassword);
+    org.password = hashedPassword;
+  }
+
+  await org.save();
+  return res
+    .status(200)
+    .json({
+      message: "Profile updated successfully",
+      org: fillterOrgData(org),
+    });
+};
+
 export {
   login,
   register,
@@ -183,4 +242,6 @@ export {
   analytics,
   GetProfile,
   blockOrg,
+  logOut,
+  profileEdit,
 };
