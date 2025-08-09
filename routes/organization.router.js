@@ -1,5 +1,6 @@
 import express from "express";
 import { body } from "express-validator";
+import multer from "multer";
 import tryCatch from "../utils/tryCatch.js";
 import {
   login,
@@ -10,10 +11,13 @@ import {
   GetProfile,
   blockOrg,
   logOut,
+  profileEdit,
+  deleteSet,
 } from "../controllers/organization.controller.js";
 import isAdminLoggedIn from "../middlewares/isAdminLoggedIn.js";
 import isOrganizationLoggedIn from "../middlewares/isOrganizationLoggedIn.js";
 const router = express.Router();
+const upload = multer();
 
 router.post(
   "/register",
@@ -56,8 +60,15 @@ router.post(
   tryCatch(verifyOtp)
 );
 router.get("/profile", isOrganizationLoggedIn, tryCatch(GetProfile));
+router.patch(
+  "/edit",
+  isOrganizationLoggedIn,
+  upload.single("avatar"),
+  tryCatch(profileEdit)
+);
 router.get("/analytics", isAdminLoggedIn, tryCatch(analytics));
 router.get("/search", isAdminLoggedIn, tryCatch(SearchOrganizations));
 router.post("/block-org", isAdminLoggedIn, tryCatch(blockOrg));
 router.get("/logout", isOrganizationLoggedIn, tryCatch(logOut));
+router.delete("/delete-set-id", isOrganizationLoggedIn, tryCatch(deleteSet));
 export default router;

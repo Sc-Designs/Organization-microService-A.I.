@@ -111,7 +111,7 @@ const SearchOrganizations = async (req, res) => {
         { email: { $regex: `^${query}`, $options: "i" } },
       ],
     })
-      .select("name email number block")
+      .select("name email phoneNumber block")
       .lean()
       .skip(skip)
       .limit(limit + 1);
@@ -186,7 +186,7 @@ const logOut = async (req, res) => {
 };
 
 const profileEdit = async (req, res) => {
-  const { name, currentPassword, confirmPassword } = req.body;
+  const { name, number, domain, currentPassword, confirmPassword } = req.body;
   const File = req.file;
   const org = await OrgFinder({
     key: "email",
@@ -212,12 +212,14 @@ const profileEdit = async (req, res) => {
     }
   }
 
-  if (name) org.name = name;
   if (avatarUrl) org.profileImage = avatarUrl;
+  if (number) org.phoneNumber = number;
+  if (domain) org.domain = domain;
+  if (name) org.name = name;
   if (avatarPublicId) org.profileImagePublicId = avatarPublicId;
 
   if (currentPassword && confirmPassword) {
-    const isMatch = await org.ComparePassword(currentPassword);
+    const isMatch = await org.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
@@ -234,6 +236,47 @@ const profileEdit = async (req, res) => {
     });
 };
 
+const deleteSet = async (req, res) => {
+  try {
+    const { orgId, setIds } = req.body;
+
+    if (!orgId || !Array.isArray(setIds) || setIds.length !== 1) {
+      return res.status(400).json({
+        success: false,
+        message: "orgId and exactly one setId are required",
+      });
+    }
+
+    const org = await Organization.findById(orgId);
+    if (!org) {
+      return res.status(404).json({
+        success: false,
+        message: "Organization not found",
+      });
+    }
+
+    org.questionSets = org.questionSets.filter(
+      (setId) => setId.toString() !== setIds[0]
+    );
+
+    await org.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Set removed from organization successfully",
+      removedSet: setIds[0],
+    });
+  } catch (error) {
+    console.error("❌ Error deleting set from organization:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while deleting set from organization",
+    });
+  }
+};
+
+
 export {
   login,
   register,
@@ -244,4 +287,5 @@ export {
   blockOrg,
   logOut,
   profileEdit,
+  deleteSet,
 };
