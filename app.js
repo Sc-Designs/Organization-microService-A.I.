@@ -18,6 +18,6 @@ app.use(cors());
 
 app.use("/", orgRoutes);
 
-app.listen("3000", ()=>{
+app.listen(process.env.PORT || 3000, ()=>{
     console.log("👷🏽‍♂️ Organization Working on 3000 ...")
 })
