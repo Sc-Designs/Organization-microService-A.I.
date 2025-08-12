@@ -15,8 +15,10 @@ app.use(cookieParser())
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 
-
-app.use("/", orgRoutes);
+app.use("/",(req, res)=>{
+  res.send("Health Check");
+});
+app.use("/api", orgRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
