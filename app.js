@@ -15,7 +15,7 @@ app.use(cookieParser())
 app.use(express.urlencoded({ extended: false }));
 app.use(cors());
 
-app.use("/",(req, res)=>{
+app.get("/",(req, res)=>{
   res.send("Health Check");
 });
 app.use("/api", orgRoutes);
